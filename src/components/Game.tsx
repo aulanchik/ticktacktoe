@@ -20,11 +20,22 @@ const Game: React.FC = (): JSX.Element => {
 
   const reducer = (
     state: State,
-    action: { type: string; payload: { posX: number; posY: number } },
+    action: { type: string; payload?: { posX: number; posY: number } },
   ) => {
     switch (action.type) {
+      case "RESET":
+        return {
+          ...state,
+          grid: generateGrid(3, 3, () => null),
+          turn: "X",
+        };
+
       case "CLICK":
         const { grid, turn } = state;
+        if (!action.payload) {
+          return state;
+        }
+
         const { posX, posY } = action.payload;
 
         if (grid[posY][posX]) {
@@ -32,9 +43,9 @@ const Game: React.FC = (): JSX.Element => {
         }
 
         const newState = clone(state);
-
         newState.grid[posY][posX] = turn;
         newState.turn = NEXT_TURN[turn];
+
         return newState;
 
       default:
@@ -44,6 +55,10 @@ const Game: React.FC = (): JSX.Element => {
 
   const [state, dispatch] = useReducer(reducer, initialState);
   const { grid } = state;
+
+  const reset = () => {
+    dispatch({ type: "RESET" });
+  };
 
   const handleClick = (posX: number, posY: number) => {
     dispatch({ type: "CLICK", payload: { posX, posY } });
@@ -60,6 +75,9 @@ const Game: React.FC = (): JSX.Element => {
       >
         <Grid grid={grid} handleClick={handleClick} />
       </div>
+      <button type="button" onClick={reset}>
+        Reset
+      </button>
     </div>
   );
 };
