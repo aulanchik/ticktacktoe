@@ -2,9 +2,10 @@ import React from "react";
 
 interface CellProps {
   value: string | null;
+  onClick: () => void;
 }
 
-const Cell: React.FC<CellProps> = ({ value }) => {
+const Cell: React.FC<CellProps> = ({ value, onClick }) => {
   return (
     <div
       style={{ backgroundColor: "#000000", width: "100px", height: "100px" }}
@@ -16,6 +17,7 @@ const Cell: React.FC<CellProps> = ({ value }) => {
           height: "100%",
           fontSize: "3rem",
         }}
+        onClick={onClick}
       >
         {value}
       </button>

@@ -3,11 +3,12 @@ import Cell from "./Cell";
 
 interface GridProps {
   grid: (string | null)[][];
+  handleClick: (colIndex: number, rowIndex: number) => void;
 }
 
-const Grid: React.FC<GridProps> = ({ grid }) => {
+const Grid: React.FC<GridProps> = ({ grid, handleClick }) => {
   return (
-    <div style={{ display: "inline-block" }}>
+    <div style={{ display: "inline-block", border: "2px solid #777" }}>
       <div
         style={{
           display: "grid",
@@ -19,7 +20,11 @@ const Grid: React.FC<GridProps> = ({ grid }) => {
       >
         {grid.map((row, rowIndex) =>
           row.map((value, colIndex) => (
-            <Cell key={`${colIndex}-${rowIndex}`} value={value} />
+            <Cell
+              key={`${colIndex}-${rowIndex}`}
+              onClick={() => handleClick(colIndex, rowIndex)}
+              value={value}
+            />
           )),
         )}
       </div>
