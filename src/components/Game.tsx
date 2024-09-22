@@ -1,52 +1,98 @@
 import React, { useReducer } from "react";
+import { generateGrid, clone, flatten } from "@/utils";
 import Grid from "./Grid";
-import { generateGrid, clone } from "@/utils";
 
 const Game: React.FC = (): JSX.Element => {
   interface State {
     grid: (string | null)[][];
+    status: string;
     turn: "X" | "O";
   }
 
-  const NEXT_TURN = {
-    X: "O",
-    O: "X",
-  } as const;
-
   const initialState: State = {
     grid: generateGrid(3, 3, () => null),
+    status: "IN_PROGRESS",
     turn: "X",
+  };
+
+  const NEXT_TURN: Record<"X" | "O", "X" | "O"> = {
+    X: "O",
+    O: "X",
+  };
+
+  const verifyCombo = (a: string | null, b: string | null, c: string | null) =>
+    a && b && c && a === b && b === c;
+
+  const createWinningCombinations = (gridSize: number) => {
+    const combos = [];
+
+    for (let row = 0; row < gridSize; row++) {
+      combos.push(
+        Array.from({ length: gridSize }, (_, col) => row * gridSize + col),
+      );
+    }
+
+    for (let col = 0; col < gridSize; col++) {
+      combos.push(
+        Array.from({ length: gridSize }, (_, row) => row * gridSize + col),
+      );
+    }
+
+    combos.push(Array.from({ length: gridSize }, (_, i) => i * gridSize + i));
+    combos.push(
+      Array.from(
+        { length: gridSize },
+        (_, i) => i * gridSize + (gridSize - 1 - i),
+      ),
+    );
+
+    return combos;
+  };
+
+  const checkWinner = (flattenGrid: (string | null)[], gridSize: number) => {
+    const winningCombinations = createWinningCombinations(gridSize);
+
+    for (const combo of winningCombinations) {
+      const [a, b, c] = combo;
+      if (verifyCombo(flattenGrid[a], flattenGrid[b], flattenGrid[c])) {
+        return flattenGrid[a];
+      }
+    }
+
+    return null;
   };
 
   const reducer = (
     state: State,
     action: { type: string; payload?: { posX: number; posY: number } },
   ) => {
+    const { grid, turn, status } = state;
+
     switch (action.type) {
       case "RESET":
-        return {
-          ...state,
-          grid: generateGrid(3, 3, () => null),
-          turn: "X",
-        };
+        return initialState;
 
-      case "CLICK":
-        const { grid, turn } = state;
-        if (!action.payload) {
-          return state;
-        }
+      case "CLICK": {
+        if (!action.payload || status === "SUCCESS") return state;
 
         const { posX, posY } = action.payload;
-
-        if (grid[posY][posX]) {
-          return state;
-        }
+        if (grid[posY][posX]) return state;
 
         const newState = clone(state);
         newState.grid[posY][posX] = turn;
-        newState.turn = NEXT_TURN[turn];
+
+        const flatArr = flatten(newState.grid);
+        const winner = checkWinner(flatArr, 3);
+
+        if (winner) {
+          newState.status = "SUCCESS";
+          newState.turn = winner;
+        } else {
+          newState.turn = NEXT_TURN[turn];
+        }
 
         return newState;
+      }
 
       default:
         return state;
@@ -54,30 +100,34 @@ const Game: React.FC = (): JSX.Element => {
   };
 
   const [state, dispatch] = useReducer(reducer, initialState);
-  const { grid } = state;
-
-  const reset = () => {
-    dispatch({ type: "RESET" });
-  };
-
-  const handleClick = (posX: number, posY: number) => {
-    dispatch({ type: "CLICK", payload: { posX, posY } });
-  };
+  const { grid, status, turn } = state;
 
   return (
     <div style={{ display: "inline-block" }}>
+      <Grid
+        grid={grid}
+        handleClick={(posX, posY) =>
+          dispatch({ type: "CLICK", payload: { posX, posY } })
+        }
+      />
       <div
         style={{
           display: "flex",
-          alignItems: "center",
           justifyContent: "space-between",
+          alignItems: "center",
+          marginTop: "10px",
         }}
       >
-        <Grid grid={grid} handleClick={handleClick} />
+        <p style={{ margin: 0 }}>
+          {status === "SUCCESS" ? "" : `Next turn: ${turn}`}
+        </p>
+        <p style={{ display: "inline-block", margin: 0 }}>
+          {status === "SUCCESS" ? `Winner: ${turn} has won!` : ""}
+        </p>
+        <button type="button" onClick={() => dispatch({ type: "RESET" })}>
+          Reset
+        </button>
       </div>
-      <button type="button" onClick={reset}>
-        Reset
-      </button>
     </div>
   );
 };
