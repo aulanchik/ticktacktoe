@@ -61,19 +61,26 @@ const Game: React.FC = (): JSX.Element => {
 
     return null;
   };
-
   const reducer = (
     state: State,
     action: { type: string; payload?: { posX: number; posY: number } },
   ) => {
     const { grid, turn, status } = state;
 
+    if (
+      (status === "SUCCESS" || status === "DRAW") &&
+      action.type !== "RESET"
+    ) {
+      return state;
+    }
+
     switch (action.type) {
       case "RESET":
         return initialState;
 
       case "CLICK": {
-        if (!action.payload || status === "SUCCESS") return state;
+        if (!action.payload || status === "SUCCESS" || status === "DRAW")
+          return state;
 
         const { posX, posY } = action.payload;
         if (grid[posY][posX]) return state;
@@ -85,13 +92,14 @@ const Game: React.FC = (): JSX.Element => {
         const winner = checkWinner(flatArr, 3);
 
         if (winner) {
-          newState.status = "SUCCESS";
-          newState.turn = winner;
-        } else {
-          newState.turn = NEXT_TURN[turn];
+          return { ...newState, status: "SUCCESS", turn: winner };
         }
 
-        return newState;
+        if (!flatArr.includes(null)) {
+          return { ...newState, status: "DRAW" };
+        }
+
+        return { ...newState, turn: NEXT_TURN[turn] };
       }
 
       default:
@@ -119,7 +127,11 @@ const Game: React.FC = (): JSX.Element => {
         }}
       >
         <p style={{ margin: 0 }}>
-          {status === "SUCCESS" ? "" : `Next turn: ${turn}`}
+          {status === "SUCCESS"
+            ? ""
+            : status === "DRAW"
+              ? "It's a draw!"
+              : `Next turn: ${turn}`}
         </p>
         <p style={{ display: "inline-block", margin: 0 }}>
           {status === "SUCCESS" ? `Winner: ${turn} has won!` : ""}
